@@ -1,0 +1,15 @@
+package im_client;
+
+message InitMessage {
+    required string name = 1;
+    required string secret = 2;
+}
+
+message InitErrorMessage {
+    enum InitErrorCode {
+        IncorrectSecret = 0;
+        AlreadyRegistered = 1;
+        ExpectedInitMessage = 2;
+    }
+    required InitErrorCode error = 1;
+}
