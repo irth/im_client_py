@@ -3,8 +3,8 @@ import struct
 import proto
 import socket
 
-a = proto.InitErrorMessage()
-a.error = proto.InitErrorMessage.AlreadyRegistered
+a = proto.InitResultMessage()
+a.result = proto.InitResultMessage.Success
 s = socket.socket()
 s.connect(("127.0.0.1", 9123))
 

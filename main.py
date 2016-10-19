@@ -19,10 +19,13 @@ class IMClient:
     async def accept(self, r, w: asyncio.streams.StreamWriter):
         message = await proto.read_message_async(r)
         if message.__class__ == proto.InitMessage:
-            print(message.name)
+            successmsg = proto.InitResultMessage()
+            successmsg.result = proto.InitResultMessage.Success
+            w.write(proto.serialize(successmsg))
         else:
-            errmsg = proto.InitErrorMessage()
-            errmsg.error = proto.InitErrorMessage.ExpectedInitMessage
+            errmsg = proto.InitResultMessage()
+            errmsg.result = proto.InitResultMessage.Error
+            errmsg.error = proto.InitResultMessage.ExpectedInitMessage
             w.write(proto.serialize(errmsg))
 
 

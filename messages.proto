@@ -5,11 +5,16 @@ message InitMessage {
     required string secret = 2;
 }
 
-message InitErrorMessage {
+message InitResultMessage {
     enum InitErrorCode {
         IncorrectSecret = 0;
         AlreadyRegistered = 1;
         ExpectedInitMessage = 2;
     }
-    required InitErrorCode error = 1;
+    enum InitResult {
+        Success = 0;
+        Error = 1;
+    }
+    required InitResult result = 1;
+    optional InitErrorCode error = 2;
 }
