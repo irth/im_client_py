@@ -3,7 +3,7 @@ import struct
 import asyncio
 import socket
 
-from messages_pb2 import *
+from .messages_pb2 import *
 
 _id_by_class = {
     InitMessage: 0,

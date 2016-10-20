@@ -3,8 +3,7 @@ import asyncio.streams
 
 import struct
 
-import proto
-
+from . import proto
 
 class IMClient:
     def __init__(self, loop: asyncio.BaseEventLoop):
@@ -31,9 +30,3 @@ class IMClient:
             errmsg.result = proto.InitResultMessage.Error
             errmsg.error = proto.InitResultMessage.ExpectedInitMessage
             w.write(proto.serialize(errmsg))
-
-
-if __name__ == '__main__':
-    loop = asyncio.get_event_loop()
-    IMClient(loop).start()
-    loop.run_forever()

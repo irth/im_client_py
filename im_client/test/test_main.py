@@ -2,9 +2,8 @@ import asyncio
 
 import pytest
 
-import main
+from im_client import main, proto
 import socket
-import proto
 import threading
 
 
