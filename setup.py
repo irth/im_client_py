@@ -6,4 +6,5 @@ setup(
     packages=['im_client'],
     license='MIT license',
     long_description=open('README.txt').read(),
+    install_requires=['protobuf']
 )
