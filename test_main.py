@@ -7,6 +7,7 @@ import socket
 import proto
 import threading
 
+
 def test_connect():
     loop = asyncio.get_event_loop()
     server = main.IMClient(loop)
