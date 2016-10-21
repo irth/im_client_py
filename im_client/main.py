@@ -5,8 +5,10 @@ import struct
 
 from . import proto
 
+
 class IMClient:
-    def __init__(self, loop: asyncio.BaseEventLoop, addr='127.0.0.1', port=9123):
+    def __init__(self, loop: asyncio.BaseEventLoop, addr='127.0.0.1',
+                 port=9123):
         self.addr = addr
         self.port = port
         self.server = None
@@ -15,7 +17,8 @@ class IMClient:
 
     def start(self):
         self.server = self.loop.run_until_complete(
-            asyncio.streams.start_server(self.accept, self.addr, self.port, loop=self.loop))
+            asyncio.streams.start_server(self.accept, self.addr, self.port,
+                                         loop=self.loop))
 
     def stop(self):
         if self.server is not None:

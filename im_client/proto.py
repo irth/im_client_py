@@ -46,4 +46,3 @@ def read_message_socket(reader: socket.socket):
     a = message_type()
     a.ParseFromString(reader.recv(size))
     return a
-
