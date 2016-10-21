@@ -5,11 +5,13 @@ from im_client import main
 
 
 def with_server(f):
-    def wrapped(*args, **kwargs):
-        loop = asyncio.get_event_loop()
-        server = main.IMClient(loop)
-        server.start()
-        loop.run_until_complete(f(loop))
-        server.stop()
+    def wrapped(event_loop, *args, **kwargs):
+        try:
+            server = main.IMClient(event_loop)
+            server.start()
+            event_loop.run_until_complete(f(event_loop))
+        finally:
+            server.stop()
+            event_loop.stop()
 
     return wrapped
