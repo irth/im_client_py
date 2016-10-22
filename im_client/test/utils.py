@@ -9,7 +9,7 @@ def with_server(f):
         try:
             server = main.IMClient(event_loop)
             server.start()
-            event_loop.run_until_complete(f(event_loop))
+            event_loop.run_until_complete(f(event_loop, server))
         finally:
             server.stop()
             event_loop.stop()
