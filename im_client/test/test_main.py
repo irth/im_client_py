@@ -5,6 +5,7 @@ import utils
 
 VALID_SECRET = "hardcoded_secret"
 
+
 @utils.with_server
 async def test_connect_with_valid_secret(loop, server):
     message = proto.InitMessage()
@@ -44,3 +45,18 @@ async def test_register_plugin(loop, server):
 
     assert reply.result == proto.InitResultMessage.Success
     assert message.name in server.plugins.keys()
+
+
+@utils.with_server
+async def test_unregister_plugin(loop, server):
+    message = proto.InitMessage()
+    message.name = "PluginName"
+    message.secret = VALID_SECRET
+
+    r, w = await asyncio.streams.open_connection('127.0.0.1', 9123, loop=loop)
+    w.write(proto.serialize(message))
+    reply = (await proto.read_message_async(r))
+    w.close()
+
+    assert reply.result == proto.InitResultMessage.Success
+    assert message.name not in server.plugins.keys()
