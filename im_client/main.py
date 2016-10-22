@@ -30,6 +30,7 @@ class IMClient:
         message = await proto.read_message_async(r)
         if message.__class__ == proto.InitMessage:
             if message.secret == "hardcoded_secret":
+                self.plugins[message.name] = "TODO: make a real plugin class"
                 successmsg = proto.InitResultMessage()
                 successmsg.result = proto.InitResultMessage.Success
                 w.write(proto.serialize(successmsg))
@@ -43,3 +44,4 @@ class IMClient:
             errmsg.result = proto.InitResultMessage.Error
             errmsg.error = proto.InitResultMessage.ExpectedInitMessage
             w.write(proto.serialize(errmsg))
+        # TODO: deregister when the connection closes
