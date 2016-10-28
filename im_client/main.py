@@ -30,9 +30,24 @@ class IMClient:
         message = await proto.read_message_async(r)
         if message.__class__ == proto.InitMessage:
             if message.secret == "hardcoded_secret":
+                self.plugins[message.name] = "TODO: make a real plugin class"
                 successmsg = proto.InitResultMessage()
                 successmsg.result = proto.InitResultMessage.Success
                 w.write(proto.serialize(successmsg))
+
+                # This loop is not actually infinite, as we break out of it
+                # when the connection gets closed.
+                while True:
+                    try:
+                        msg = await proto.read_message_async(r)
+                        # TODO: do something with the message
+                    except asyncio.streams.IncompleteReadError:
+                        # This exception gets thrown when the connection is
+                        # closed. There's no reason to keep waiting for
+                        # messages when the client closes the connection.
+                        break
+
+                self.plugins.pop(message.name)
             else:
                 errmsg = proto.InitResultMessage()
                 errmsg.result = proto.InitResultMessage.Error

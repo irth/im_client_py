@@ -35,9 +35,9 @@ def serialize(object):
 
 
 async def read_message_async(reader: asyncio.streams.StreamReader):
-    size, message_type = parse_header(await reader.read(8))
+    size, message_type = parse_header(await reader.readexactly(8))
     a = message_type()
-    a.ParseFromString(await reader.read(size))
+    a.ParseFromString(await reader.readexactly(size))
     return a
 
 
