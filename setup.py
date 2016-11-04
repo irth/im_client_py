@@ -5,6 +5,6 @@ setup(
     version='0.1dev',
     packages=['im_client'],
     license='MIT license',
-    long_description=open('README.txt').read(),
+    long_description=open('README.rst').read(),
     install_requires=['protobuf']
 )
