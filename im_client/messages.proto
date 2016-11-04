@@ -18,3 +18,8 @@ message InitResultMessage {
     required InitResult result = 1;
     optional InitErrorCode error = 2;
 }
+
+message SubscribeMessage {
+    required string name = 1;
+    optional bytes data = 2;
+}

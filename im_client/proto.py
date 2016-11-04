@@ -7,7 +7,8 @@ from .messages_pb2 import *
 
 _id_by_class = {
     InitMessage: 0,
-    InitResultMessage: 1
+    InitResultMessage: 1,
+    SubscribeMessage: 2
 }
 
 

@@ -34,8 +34,32 @@ class MockStream:
         return ret
 
 
-def MockDict():
-    base_dict = {}
+def MockList(base=None):
+    base_list = [] if base is None else base
+
+    def setitem(key, value):
+        base_list[key] = value
+
+    def append(value):
+        base_list.append(value)
+
+    def getitem(key):
+        return base_list[key]
+
+    def remove(key):
+        base_list.remove(key)
+
+    mock = unittest.mock.MagicMock()
+    mock.__setitem__.side_effect = setitem
+    mock.append.side_effect = append
+    mock.__getitem__.side_effect = getitem
+    mock.remove.sideeffect = remove
+
+    return mock
+
+
+def MockDict(base=None):
+    base_dict = {} if base is None else base
 
     def setitem(key, value):
         base_dict[key] = value
