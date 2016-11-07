@@ -47,3 +47,20 @@ def read_message_socket(reader: socket.socket):
     a = message_type()
     a.ParseFromString(reader.recv(size))
     return a
+
+
+def netstring_encode(string):
+    enc = string.encode('utf-8')
+    return str(len(enc)).encode('utf-8') + ":".encode('utf-8') + enc
+
+
+async def netstring_decode(reader: asyncio.streams.StreamReader):
+    len = b''
+    while True:
+        char = await reader.readexactly(1)  # read one byte
+        if char == ':'.encode('utf-8'):
+            break
+        else:
+            len += char
+    len = int(len)
+    return (await reader.readexactly(len)).decode('utf-8')
