@@ -9,6 +9,7 @@ class MockStream:
 
     def __init__(self):
         self.queue = asyncio.queues.Queue()
+        self._data = b''
 
     def close(self):
         eos = self.EndOfStream()
@@ -17,6 +18,10 @@ class MockStream:
     def write(self, data: bytes):
         for byte in data:
             self.queue.put_nowait(byte)
+        self._data += data
+
+    def get_bytes(self):
+        return self._data
 
     async def readexactly(self, n=-1):
         ret = b''
@@ -27,6 +32,9 @@ class MockStream:
             data = await self.queue.get()
             if isinstance(data, self.EndOfStream):
                 break  # the mocked socket was closed
+            b = list(self._data)
+            b.pop()
+            self._data = bytes(b)
             ret += bytes([data])
 
         if len(ret) < n != -1:

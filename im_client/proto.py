@@ -1,3 +1,4 @@
+import json
 import struct
 
 import asyncio
@@ -35,17 +36,14 @@ def serialize(object):
     return header + serialized
 
 
-async def read_message_async(reader: asyncio.streams.StreamReader):
-    size, message_type = parse_header(await reader.readexactly(8))
-    a = message_type()
-    a.ParseFromString(await reader.readexactly(size))
-    return a
+def write_message(writer: asyncio.streams.StreamWriter, message):
+    data = json.dumps(message)
+    writer.write(netstring_encode(data))
 
 
-def read_message_socket(reader: socket.socket):
-    size, message_type = parse_header(reader.recv(8))
-    a = message_type()
-    a.ParseFromString(reader.recv(size))
+async def read_message(reader: asyncio.streams.StreamReader):
+    data = (await netstring_decode(reader))
+    a = json.loads(data)
     return a
 
 
