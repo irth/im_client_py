@@ -1,2 +1,3 @@
 protobuf
 pytest-asyncio
+pytest-timeout
