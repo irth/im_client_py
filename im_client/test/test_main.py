@@ -1,3 +1,5 @@
+import asyncio
+
 import pytest
 
 from im_client import main, proto
@@ -6,43 +8,79 @@ import utils
 VALID_SECRET = "hardcoded_secret"
 
 
+@pytest.mark.timeout(5)
 @pytest.mark.asyncio
-async def test_connect_with_valid_secret():
-    message = proto.InitMessage()
-    message.name = "TestName"
-    message.secret = VALID_SECRET
-
-    server = main.IMClient(None)
+async def test_connect_with_valid_secret(event_loop):
     r = utils.MockStream()
     w = utils.MockStream()
-    r.write(proto.serialize(message))
-    r.close()
 
-    await server.accept(r, w)
-    reply = (await proto.read_message_async(w))
+    server = main.IMClient(event_loop)
 
-    assert reply.result == proto.InitResultMessage.Success
+    proto.write_message(r, {
+        "jsonrpc": "2.0",
+        "id": 0,
+        "method": "init",
+        "params": {
+            "name": "TestName",
+            "secret": VALID_SECRET
+        }
+    })
+
+    async def check_the_reply():
+        message = await proto.read_message(w)
+        r.close()
+        assert message == {
+            "id": 0,
+            "jsonrpc": "2.0",
+            "result": "success"
+        }
+
+    try:
+        await asyncio.gather(
+            check_the_reply(),
+            server.accept(r, w)
+        )
+    except asyncio.streams.IncompleteReadError:
+        pass  # the connection's closed
 
 
+@pytest.mark.timeout(5)
 @pytest.mark.asyncio
-async def test_connect_with_invalid_secret():
-    message = proto.InitMessage()
-    message.name = "TestName"
-    message.secret = VALID_SECRET + "1"  # make it invalid
-
-    server = main.IMClient(None)
+async def test_connect_with_invalid_secret(event_loop):
     r = utils.MockStream()
     w = utils.MockStream()
-    r.write(proto.serialize(message))
-    r.close()
 
-    await server.accept(r, w)
-    reply = (await proto.read_message_async(w))
+    server = main.IMClient(event_loop)
 
-    # TODO: maybe get rid of _async and _socket as it was only needed for the synchronous tests...
+    proto.write_message(r, {
+        "jsonrpc": "2.0",
+        "id": 0,
+        "method": "init",
+        "params": {
+            "name": "TestName",
+            "secret": VALID_SECRET + "1"  # make the secret invalid
+        }
+    })
 
-    assert reply.result == proto.InitResultMessage.Error
-    assert reply.error == proto.InitResultMessage.IncorrectSecret
+    async def check_the_reply():
+        message = await proto.read_message(w)
+        r.close()
+        assert message == {
+            "id": 0,
+            "jsonrpc": "2.0",
+            "error": {
+                "code": 100,
+                "message": "Incorrect secret."
+            }
+        }
+
+    try:
+        await asyncio.gather(
+            check_the_reply(),
+            server.accept(r, w)
+        )
+    except asyncio.streams.IncompleteReadError:
+        pass  # the connection's closed
 
 
 @pytest.mark.asyncio

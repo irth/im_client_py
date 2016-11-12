@@ -1,8 +1,7 @@
 import asyncio
 import asyncio.streams
 
-import struct
-
+from .netstringrpc import NetstringRPC
 from .plugin import Plugin
 from . import proto
 
@@ -42,6 +41,7 @@ class IMClient:
 
         def deferred():
             self.unsubscribe(plugin, event)
+
         plugin.defer(deferred)
 
     def unsubscribe(self, plugin, event):
@@ -58,42 +58,47 @@ class IMClient:
             self.subscribe(plugin, message)
 
     async def accept(self, r, w: asyncio.streams.StreamWriter):
-        message = await proto.read_message_async(r)
-        if message.__class__ == proto.InitMessage:
-            if message.secret == "hardcoded_secret":
-                plugin = Plugin(message.name, r, w)
-                self.plugins[message.name] = plugin
+        # TODO: document the RPC API
+        rpc = NetstringRPC(r, w, self.loop)
+        plugin = Plugin(rpc)
 
-                def pop():
-                    self.plugins.pop(plugin.name)
-                plugin.defer(pop)  # pop plugin after the connection ends
+        async def init_handler(params=None):
+            if (params is None
+                    or "secret" not in params
+                    or "name" not in params):
+                return {
+                    "error": {
+                        "code": -32602,
+                        "message": "Invalid method parameter(s)."
+                    }
+                }
+            elif params['secret'] != "hardcoded_secret":
+                return {
+                    "error": {
+                        "code": 100,
+                        "message": "Incorrect secret."
+                    }
+                }
 
-                successmsg = proto.InitResultMessage()
-                successmsg.result = proto.InitResultMessage.Success
-                w.write(proto.serialize(successmsg))
+            # If we're here it means that the init message is correct
+            plugin.name = params['name']
+            self.plugins[params['name']] = plugin
 
-                # This loop is not actually infinite, as we break out of it
-                # when the connection gets closed.
-                while True:
-                    try:
-                        message = await proto.read_message_async(r)
-                        self.handle_message(plugin, message)
-                    except asyncio.streams.IncompleteReadError:
-                        # This exception gets thrown when the connection is
-                        # closed. There's no reason to keep waiting for
-                        # messages when the client closes the connection.
-                        break
+            def pop():
+                self.plugins.pop(plugin.name)
 
-                for i in plugin.deffered_tasks:
-                    i()
+            plugin.defer(pop)  # pop plugin after the connection ends
 
-            else:
-                errmsg = proto.InitResultMessage()
-                errmsg.result = proto.InitResultMessage.Error
-                errmsg.error = proto.InitResultMessage.IncorrectSecret
-                w.write(proto.serialize(errmsg))
-        else:
-            errmsg = proto.InitResultMessage()
-            errmsg.result = proto.InitResultMessage.Error
-            errmsg.error = proto.InitResultMessage.ExpectedInitMessage
-            w.write(proto.serialize(errmsg))
+            # TODO: register handlers for "subscribe"
+
+            return {
+                "result": "success"
+            }
+
+        rpc.register_handler("init", init_handler)
+
+        try:
+            await rpc.loop()
+        except asyncio.streams.IncompleteReadError:
+            for i in plugin.deffered_tasks:
+                i()

@@ -1,8 +1,7 @@
 class Plugin:
-    def __init__(self, name, reader, writer):
-        self.reader = reader
-        self.writer = writer
-        self.name = name
+    def __init__(self, rpc):
+        self.rpc = rpc
+        self.name = None
         self.deffered_tasks = []
 
     def defer(self, task):

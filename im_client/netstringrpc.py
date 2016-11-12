@@ -48,6 +48,7 @@ class NetstringRPC:
         # result back.
         # I wrap the iterator in a list because I want to remove the keys
         # while in the loop.
+
         for message_id, future in list(self.request_futures.items()):
             if future.done():
                 result = future.result()
@@ -57,23 +58,26 @@ class NetstringRPC:
                 del self.request_futures[message_id]
         self.event_loop.call_soon(self.check_futures)
 
+    def close(self):
+        self.writer.close()
+
     async def loop(self):
         self.event_loop.call_soon(self.check_futures)
         while True:
             message = (await proto.read_message(self.reader))
-            type = "invalid"
+            message_type = "invalid"
             if "method" in message:
-                type = "request" if "id" in message else "notification"
+                message_type = "request" if "id" in message else "notification"
             elif "id" in message:
                 if "result" in message or "error" in message:
-                    type = "response"
+                    message_type = "response"
 
-            if type == "invalid":
+            if message_type == "invalid":
                 continue  # silently ignore the error because i'm too lazy
-            elif type == "response":
+            elif message_type == "response":
                 if message['id'] in self.response_futures:
                     self.response_futures[message['id']].set_result(message)
-            elif type == "request" or type == "notification":
+            elif message_type == "request" or message_type == "notification":
                 if message['method'] in self.handlers:
                     if "params" in message:
                         coro = self.handlers[message['method']](message['params'])
@@ -81,7 +85,7 @@ class NetstringRPC:
                         coro = self.handlers[message['method']]()
                     future = asyncio.ensure_future(coro)
 
-                    if type != "notification":
+                    if message_type != "notification":
                         # If the request is a so-called notification, we
                         # don't need to (and in fact can't) return a response.
                         # So we won't bother even checking for it.
