@@ -29,14 +29,15 @@ class IMClient:
 
     def subscribe(self, plugin, event):
         try:
-            self.subscriptions[event.name]
+            self.subscriptions[event['name']]
         except KeyError:
-            self.subscriptions[event.name] = []
+            self.subscriptions[event['name']] = []
 
-        if plugin not in self.subscriptions[event.name]:
-            self.subscriptions[event.name].append((
+        if plugin not in self.subscriptions[event['name']]:
+            pass
+            self.subscriptions[event['name']].append((
                 plugin,
-                event.data if event.data is not None else b''
+                event['data'] if 'data' in event else None
             ))
 
         def deferred():
@@ -46,16 +47,21 @@ class IMClient:
 
     def unsubscribe(self, plugin, event):
         try:
-            if plugin in self.subscriptions[event.name]:
-                self.subscriptions[event.name].remove(plugin)
-                if len(self.subscriptions[event.name]) == 0:
-                    self.subscriptions.pop(event.name)
+            if plugin in self.subscriptions[event['name']]:
+                self.subscriptions[event['name']].remove(plugin)
+                if len(self.subscriptions[event['name']]) == 0:
+                    self.subscriptions.pop(event['name'])
         except KeyError:
             pass
 
-    def handle_message(self, plugin, message):
-        if isinstance(message, proto.SubscribeMessage):
-            self.subscribe(plugin, message)
+    def register_handlers(self, plugin):
+        async def subscribe_handler(params):
+            self.subscribe(plugin, params)
+            return {
+                "result": "success"
+            }
+
+        plugin.rpc.register_handler("subscribe", subscribe_handler)
 
     async def accept(self, r, w: asyncio.streams.StreamWriter):
         # TODO: document the RPC API
@@ -89,7 +95,7 @@ class IMClient:
 
             plugin.defer(pop)  # pop plugin after the connection ends
 
-            # TODO: register handlers for "subscribe"
+            self.register_handlers(plugin)
 
             return {
                 "result": "success"
