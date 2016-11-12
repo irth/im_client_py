@@ -83,49 +83,87 @@ async def test_connect_with_invalid_secret(event_loop):
         pass  # the connection's closed
 
 
+@pytest.mark.timeout(5)
 @pytest.mark.asyncio
-async def test_register_plugin():
-    message = proto.InitMessage()
-    message.name = "PluginName"
-    message.secret = VALID_SECRET
+async def test_register_plugin(event_loop):
+    r = utils.MockStream()
+    w = utils.MockStream()
 
-    server = main.IMClient(None)
+    server = main.IMClient(event_loop)
     server.plugins = utils.MockDict()
-    r = utils.MockStream()
-    w = utils.MockStream()
-    r.write(proto.serialize(message))
-    r.close()
 
-    await server.accept(r, w)
-    reply = (await proto.read_message_async(w))
+    proto.write_message(r, {
+        "jsonrpc": "2.0",
+        "id": 0,
+        "method": "init",
+        "params": {
+            "name": "TestName",
+            "secret": VALID_SECRET
+        }
+    })
 
-    assert reply.result == proto.InitResultMessage.Success
-    added = False
-    for call in server.plugins.__setitem__.call_args_list:
-        # call[0] contains the positional args and we want the first one
-        if call[0][0] == message.name:
-            added = True
-            break
-    assert added
+    async def check_the_reply():
+        message = await proto.read_message(w)
+        r.close()
+        assert message == {
+            "id": 0,
+            "jsonrpc": "2.0",
+            "result": "success"
+        }
+
+        added = False
+        for call in server.plugins.__setitem__.call_args_list:
+            # call[0] contains the positional args and we want the first one
+            if call[0][0] == "TestName":
+                added = True
+                break
+        assert added
+
+    try:
+        await asyncio.gather(
+            check_the_reply(),
+            server.accept(r, w)
+        )
+    except asyncio.streams.IncompleteReadError:
+        pass  # the connection's closed
 
 
+@pytest.mark.timeout(5)
 @pytest.mark.asyncio
-async def test_unregister_plugin():
-    message = proto.InitMessage()
-    message.name = "PluginName"
-    message.secret = VALID_SECRET
-
-    server = main.IMClient(None)
+async def test_unregister_plugin(event_loop):
     r = utils.MockStream()
     w = utils.MockStream()
-    r.write(proto.serialize(message))
-    r.close()
 
-    await server.accept(r, w)
-    reply = (await proto.read_message_async(w))
+    server = main.IMClient(event_loop)
 
-    assert reply.result == proto.InitResultMessage.Success
-    assert message.name not in server.plugins.keys()
+    proto.write_message(r, {
+        "jsonrpc": "2.0",
+        "id": 0,
+        "method": "init",
+        "params": {
+            "name": "TestName",
+            "secret": VALID_SECRET
+        }
+    })
+
+    async def check_the_reply():
+        message = await proto.read_message(w)
+        r.close()
+        assert message == {
+            "id": 0,
+            "jsonrpc": "2.0",
+            "result": "success"
+        }
+
+    try:
+        await asyncio.gather(
+            check_the_reply(),
+            server.accept(r, w)
+        )
+    except asyncio.streams.IncompleteReadError:
+        pass  # the connection's closed
+
+    assert "TestName" not in server.plugins.keys()
 
 
 @pytest.mark.asyncio
