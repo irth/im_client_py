@@ -75,10 +75,11 @@ class NetstringRPC:
                     self.response_futures[message['id']].set_result(message)
             elif type == "request" or type == "notification":
                 if message['method'] in self.handlers:
-                    # TODO: pass params to the handler
-                    future = asyncio.ensure_future(
-                        self.handlers[message['method']]()
-                    )
+                    if "params" in message:
+                        coro = self.handlers[message['method']](message['params'])
+                    else:
+                        coro = self.handlers[message['method']]()
+                    future = asyncio.ensure_future(coro)
 
                     if type != "notification":
                         # If the request is a so-called notification, we
