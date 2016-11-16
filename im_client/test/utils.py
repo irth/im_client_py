@@ -1,6 +1,8 @@
 import asyncio.queues
 import unittest.mock
 
+from im_client import proto, IMClient
+
 
 # TODO: figure out how to make nice docs and describe why it implements only these two functions
 class MockStream:
@@ -57,11 +59,15 @@ def MockList(base=None):
     def remove(key):
         base_list.remove(key)
 
+    def get_all():
+        return base_list
+
     mock = unittest.mock.MagicMock()
     mock.__setitem__.side_effect = setitem
     mock.append.side_effect = append
     mock.__getitem__.side_effect = getitem
-    mock.remove.sideeffect = remove
+    mock.remove.side_effect = remove
+    mock.get_all.side_effect = get_all
 
     return mock
 
@@ -84,3 +90,30 @@ def MockDict(base=None):
     mock.pop.sideeffect = pop
 
     return mock
+
+
+async def create_server(event_loop, messages=None, setup=None, check=None):
+    r = MockStream()
+    w = MockStream()
+    if messages is not None:
+        if isinstance(messages, dict):
+            messages = [messages]
+        if isinstance(messages, list):
+            for message in messages:
+                proto.write_message(r, message)
+
+    server = IMClient(event_loop)
+    if setup is not None:
+        await setup(server, r, w)
+
+    if check is not None:
+        try:
+            await asyncio.gather(
+                check(server, r, w),
+                server.accept(r, w)
+            )
+        except asyncio.streams.IncompleteReadError:
+            pass  # the connection's closed
+
+    return server, r, w
+

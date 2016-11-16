@@ -34,7 +34,6 @@ class IMClient:
             self.subscriptions[event['name']] = []
 
         if plugin not in self.subscriptions[event['name']]:
-            pass
             self.subscriptions[event['name']].append((
                 plugin,
                 event['data'] if 'data' in event else None
