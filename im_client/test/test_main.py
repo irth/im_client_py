@@ -163,7 +163,7 @@ async def test_subscriber_list_exists(event_loop):
 @pytest.mark.timeout(5)
 @pytest.mark.asyncio
 async def test_subscription_is_added(event_loop):
-    sub_list = utils.MockList()
+    sub_list = utils.MockDict()
     async def setup(server, r, w):
         server.subscriptions = {
             "ExampleEvent": sub_list
@@ -178,8 +178,9 @@ async def test_subscription_is_added(event_loop):
         assert message["result"] == "success"
 
         added_plugin = False
-        for call in sub_list.append.call_args_list:
-            if call[0][0][0].name == "TestName":
+        for call in sub_list.__setitem__.call_args_list:
+            print(call[0][0])
+            if call[0][0] == "TestName":
                 added_plugin = True
 
         r.close()
@@ -192,3 +193,48 @@ async def test_subscription_is_added(event_loop):
         check=check_the_reply
     )
 
+
+@pytest.mark.timeout(5)
+@pytest.mark.asyncio
+async def test_subscription_is_removed(event_loop):
+    sub_list = utils.MockDict()
+    async def setup(server, r, w):
+        server.subscriptions = {
+            "ExampleEvent": sub_list
+        }
+
+    async def check_the_reply(server, r, w):
+        message = await proto.read_message(w)
+        assert message["result"] == "success"
+
+        proto.write_message(r, subscribe_message)
+        message = await proto.read_message(w)
+        assert message["result"] == "success"
+
+        added_plugin = False
+        for call in sub_list.__setitem__.call_args_list:
+            if call[0][0] == "TestName":
+                added_plugin = True
+
+        msg = deepcopy(subscribe_message)
+        msg["method"] = "unsubscribe"
+        msg["id"] = 2
+        proto.write_message(r, msg)
+
+        message = await proto.read_message(w)
+        assert message["result"] == "success"
+
+        removed_plugin = False
+        for call in sub_list.pop.call_args_list:
+            if call[0][0] == "TestName":
+                removed_plugin = True
+
+        r.close()
+        assert added_plugin and removed_plugin
+
+    await utils.create_server(
+        event_loop,
+        messages=INIT_MESSAGE,
+        setup=setup,
+        check=check_the_reply
+    )

@@ -62,12 +62,16 @@ def MockList(base=None):
     def get_all():
         return base_list
 
+    def contains(item):
+        return item in base_list
+
     mock = unittest.mock.MagicMock()
     mock.__setitem__.side_effect = setitem
     mock.append.side_effect = append
     mock.__getitem__.side_effect = getitem
     mock.remove.side_effect = remove
     mock.get_all.side_effect = get_all
+    mock.__contains__.side_effect = contains
 
     return mock
 
@@ -84,10 +88,18 @@ def MockDict(base=None):
     def pop(key, default=None):
         return base_dict.pop(key, default)
 
+    def contains(key):
+        return key in base_dict
+
+    def get_all():
+        return base_dict
+
     mock = unittest.mock.MagicMock()
     mock.__setitem__.side_effect = setitem
     mock.__getitem__.side_effect = getitem
-    mock.pop.sideeffect = pop
+    mock.pop.side_effect = pop
+    mock.__contains__.side_effect = contains
+    mock.get_all.side_effect = get_all
 
     return mock
 

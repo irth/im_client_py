@@ -31,13 +31,13 @@ class IMClient:
         try:
             self.subscriptions[event['name']]
         except KeyError:
-            self.subscriptions[event['name']] = []
+            self.subscriptions[event['name']] = {}
 
         if plugin not in self.subscriptions[event['name']]:
-            self.subscriptions[event['name']].append((
+            self.subscriptions[event['name']][plugin.name] = (
                 plugin,
                 event['data'] if 'data' in event else None
-            ))
+            )
 
         def deferred():
             self.unsubscribe(plugin, event)
@@ -46,8 +46,8 @@ class IMClient:
 
     def unsubscribe(self, plugin, event):
         try:
-            if plugin in self.subscriptions[event['name']]:
-                self.subscriptions[event['name']].remove(plugin)
+            if plugin.name in self.subscriptions[event['name']]:
+                self.subscriptions[event['name']].pop(plugin.name)
                 if len(self.subscriptions[event['name']]) == 0:
                     self.subscriptions.pop(event['name'])
         except KeyError:
@@ -61,6 +61,14 @@ class IMClient:
             }
 
         plugin.rpc.register_handler("subscribe", subscribe_handler)
+
+        async def unsubscribe_handler(params):
+            self.unsubscribe(plugin, params)
+            return {
+                "result": "success"
+            }
+
+        plugin.rpc.register_handler("unsubscribe", unsubscribe_handler)
 
     async def accept(self, r, w: asyncio.streams.StreamWriter):
         # TODO: document the RPC API
