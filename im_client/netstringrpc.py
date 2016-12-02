@@ -3,29 +3,45 @@ from . import proto
 
 
 class RPCCall:
-    def __init__(self, conn, name):
+    def __init__(self, conn, name, notification=False):
+        if name == "_notification":
+            self.notification = True
+        else:
+            self.notification = notification
         self.conn = conn
-        self.name = name
+        self.name = name if not name == "_notification" else None
 
     def __getattr__(self, name):
-        return RPCCall(self.conn, "%s.%s" % (self.name, name))
+        if name == '_notification':
+            return RPCCall(self.conn, self.name, notification=True)
+        else:
+            if self.name is not None:
+                new_name = "%s.%s" % (self.name, name)
+            else:
+                new_name = name
+            return RPCCall(self.conn, new_name, notification=self.notification)
 
     def __call__(self, params=None):
         request = {
             "jsonrpc": "2.0",
-            "method": self.name,
-            "id": self.conn.last_id
+            "method": self.name
         }
+
+        response = None
+        if not self.notification:
+            request["id"] = self.conn.last_id
+            # the main loop will mark futures done when needed
+            response = asyncio.Future()
+            self.conn.response_futures[request['id']] = response
+
         if params is not None:
             request["params"] = params
         self.conn.last_id += 1
 
         proto.write_message(self.conn.writer, request)
 
-        # the main loop will mark futures done when needed
-        response = asyncio.Future()
-        self.conn.response_futures[request['id']] = response
-        return response
+        if response is not None:
+            return response
 
 
 class NetstringRPC:

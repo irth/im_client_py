@@ -53,6 +53,14 @@ class IMClient:
         except KeyError:
             pass
 
+    def emit(self, plugin, event):
+        # TODO: check event's validity
+        for _, receiver in self.subscriptions[event['name']].items():
+            receiver[0].rpc._notification.event(event)
+        return {
+            "result": "success"
+        }
+
     def register_handlers(self, plugin):
         async def subscribe_handler(params):
             self.subscribe(plugin, params)
@@ -69,6 +77,11 @@ class IMClient:
             }
 
         plugin.rpc.register_handler("unsubscribe", unsubscribe_handler)
+
+        async def emit_handler(params):
+            return self.emit(plugin, params)
+
+        plugin.rpc.register_handler("emit", emit_handler)
 
     async def accept(self, r, w: asyncio.streams.StreamWriter):
         # TODO: document the RPC API
