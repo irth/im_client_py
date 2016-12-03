@@ -56,6 +56,7 @@ class IMClient:
     def emit(self, plugin, event):
         # TODO: check event's validity
         for _, receiver in self.subscriptions[event['name']].items():
+            event['sender'] = plugin.name
             receiver[0].rpc._notification.event(event)
         return {
             "result": "success"

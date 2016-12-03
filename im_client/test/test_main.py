@@ -280,7 +280,7 @@ async def test_emit_receive_event(event_loop):
         assert (await proto.read_message(w1))['result'] == 'success'
         assert (await proto.read_message(w2)) == {
             'method': 'event',
-            'params': {'name': 'ExampleEvent'},
+            'params': {'name': 'ExampleEvent', 'sender': INIT_MESSAGE['params']['name']},
             'jsonrpc': '2.0'
         }
 
