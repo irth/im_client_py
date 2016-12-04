@@ -14,6 +14,27 @@ async def read_message(reader: asyncio.streams.StreamReader):
     return a
 
 
+event_required_fields = {
+    "MESSAGE": ["from", "to", "text"]
+}
+
+
+def validate_event(event):
+    """
+    Validates event's data.
+    Returns True if the event's correct, false if it isn't.
+    """
+    if "name" not in event:
+        return False
+    for event_name in event_required_fields:
+        if event_name == event['name']:
+            for field in event_required_fields[event_name]:
+                if field not in event:
+                    return False
+            return True
+    return True
+
+
 def netstring_encode(string):
     enc = string.encode('utf-8')
     return str(len(enc)).encode('utf-8') + ":".encode('utf-8') + enc
