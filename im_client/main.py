@@ -54,10 +54,17 @@ class IMClient:
             pass
 
     def emit(self, plugin, event):
-        # TODO: check event's validity
-        for _, receiver in self.subscriptions[event['name']].items():
-            event['sender'] = plugin.name
-            receiver[0].rpc._notification.event(event)
+        if not proto.validate_event(event):
+            return {
+                "error": {
+                    "code": 110,
+                    "message": "Event invalid."
+                }
+            }
+        if event['name'] in self.subscriptions and hasattr(self.subscriptions[event['name']], 'items'):
+            for _, receiver in self.subscriptions[event['name']].items():
+                event['sender'] = plugin.name
+                receiver[0].rpc._notification.event(event)
         return {
             "result": "success"
         }

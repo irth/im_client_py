@@ -187,3 +187,65 @@ async def test_emit_receive_event(event_loop):
         )
     except asyncio.streams.IncompleteReadError:  # the connection's closed
         pass
+
+
+@pytest.mark.timeout(5)
+@pytest.mark.asyncio
+async def test_emit_invalid_event(event_loop):
+    async def check_the_reply(server, r, w):
+        # Make sure that the plugin was registered correctly
+        assert (await proto.read_message(w))['result'] == 'success'
+
+        # Emit the event
+        proto.write_message(r, {
+            "jsonrpc": "2.0",
+            "id": 1,
+            "method": "emit",
+            "params": {
+                "name": "MESSAGE"
+            }
+        })
+
+        assert (await proto.read_message(w))['error'] == {
+            'code': 110,
+            'message': 'Event invalid.'
+        }
+
+        r.close()
+
+    await utils.create_server(
+        event_loop,
+        messages=INIT_MESSAGE,
+        check=check_the_reply
+    )
+
+
+@pytest.mark.timeout(5)
+@pytest.mark.asyncio
+async def test_emit_valid_message_event(event_loop):
+    async def check_the_reply(server, r, w):
+        # Make sure that the plugin was registered correctly
+        assert (await proto.read_message(w))['result'] == 'success'
+
+        # Emit the event
+        proto.write_message(r, {
+            "jsonrpc": "2.0",
+            "id": 1,
+            "method": "emit",
+            "params": {
+                "name": "MESSAGE",
+                "from": "whoever",
+                "to": "wherever",
+                "text": "whatever"
+            }
+        })
+
+        assert (await proto.read_message(w))['result'] == 'success'
+
+        r.close()
+
+    await utils.create_server(
+        event_loop,
+        messages=INIT_MESSAGE,
+        check=check_the_reply
+    )
